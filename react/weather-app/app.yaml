@@ -1,0 +1,13 @@
+runtime: nodejs18
+instance_class: F1
+handlers:
+  - url: /static
+    static_dir: build/static
+
+  - url: /
+    static_files: build/index.html
+    upload: build/index.html
+
+  - url: /(.*)
+    static_files: build/index.html
+    upload: build/index.html

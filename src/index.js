@@ -9,7 +9,12 @@ const app = express();
 const PORT = process.env.PORT || 5001; // Changed port to 5001 to avoid conflicts
 const client = new Client({});
 
-const TOMORROW_API_KEY = "your api key";
+// const TOMORROW_API_KEY = "l6Z393yxHW9VHoqcsbQwEbUtt2rcRQKb";
+const TOMORROW_API_KEY = "XwIyKtkrqaqFa0nR07LOqAA6kZ17hiWS";
+// const TOMORROW_API_KEY = "ARWi4os6ZSX3Qp1KoWbgCwpXo4L2UaDV";
+// XwIyKtkrqaqFa0nR07LOqAA6kZ17hiWS
+// ARWi4os6ZSX3Qp1KoWbgCwpXo4L2UaDV
+
 app.get("/", (req, res) => {
   res.status(200).send("Connected to backend");
 });
@@ -161,6 +166,10 @@ app.get("/autocomplete", async (req, res) => {
 // New GET endpoint to accept weather location data
 app.get("/weather", async (req, res) => {
   const { lat, lon, street, city, state, useLocation } = req.query;
+
+  // Log the latitude and longitude to check if they are being received correctly
+  console.log("Received latitude:", lat); // Log the received latitude
+  console.log("Received longitude:", lon); // Log the received longitude
 
   if (!lat || !lon) {
     return res
@@ -319,17 +328,53 @@ app.get("/weather", async (req, res) => {
   // });
 });
 
-// Get all favorites
+// // Get all favorites
+// app.get("/favorites", async (req, res) => {
+//   try {
+//     const favorites = await Favorite.find().sort({ createdAt: -1 });
+//     res.json(favorites);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// });
+
 app.get("/favorites", async (req, res) => {
   try {
-    const favorites = await Favorite.find().sort({ createdAt: -1 });
-    res.json(favorites);
+    const favorites = await Favorite.find().sort({ createdAt: -1 }).lean(); // Use lean() to get plain objects
+
+    // Map favorites to include _id as a string
+    const formattedFavorites = favorites.map((favorite) => ({
+      _id: favorite._id.toString(),
+      city: favorite.city,
+      state: favorite.state,
+    }));
+
+    res.json(formattedFavorites);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Add new favorite
+// // Add new favorite
+// app.post("/favorites", async (req, res) => {
+//   const favorite = new Favorite({
+//     city: req.body.city,
+//     state: req.body.state,
+//   });
+
+//   try {
+//     const newFavorite = await favorite.save();
+//     res.status(201).json(newFavorite);
+//   } catch (error) {
+//     // Handle duplicate entries`
+//     if (error.code === 11000) {
+//       res.status(400).json({ message: "Location already in favorites" });
+//     } else {
+//       res.status(400).json({ message: error.message });
+//     }
+//   }
+// });
+
 app.post("/favorites", async (req, res) => {
   const favorite = new Favorite({
     city: req.body.city,
@@ -338,9 +383,12 @@ app.post("/favorites", async (req, res) => {
 
   try {
     const newFavorite = await favorite.save();
-    res.status(201).json(newFavorite);
+    res.status(201).json({
+      _id: newFavorite._id.toString(), // Explicitly convert to string
+      city: newFavorite.city,
+      state: newFavorite.state,
+    });
   } catch (error) {
-    // Handle duplicate entries
     if (error.code === 11000) {
       res.status(400).json({ message: "Location already in favorites" });
     } else {
